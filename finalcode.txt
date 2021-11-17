@@ -1,0 +1,230 @@
+#define _CRT_SECURE_NO_WARNINGS
+/*줄다리기 게임*/
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <time.h>
+#include <windows.h>
+
+void gotoxy(int x, int y);
+double intro_game(char team_name[][7]);
+void display_start(char t_name[][7], int s_w[], int s_l[]);
+void display_line(int rnd);
+void display_win(char t_name[][7], int s_win[], int s_lose[]);
+void game_control(int* rough_s, clock_t st, double* ps);
+void make_decision(int r_s, int s_w[], int s_l[], char t_name[][7]);
+
+int main(void)
+{
+	int score_win[2] = {}, score_lose[2] = {}, r_start;
+	int result1 = 0, result2 = 0;
+	char team_name[2][7];
+	double pst, game_time;
+	clock_t start;
+
+	srand(time(NULL));
+	game_time = intro_game(team_name);
+	do
+	{
+		display_start(team_name, score_win, score_lose);
+		r_start = 20;
+		start = clock();
+		pst = 0;
+		do
+		{
+
+			game_control(&r_start, start, &pst);
+
+		} while (pst < game_time && ((8 < r_start) && (r_start < 32)));
+		make_decision(r_start, score_win, score_lose, team_name);
+		display_win(team_name, score_win, score_lose);
+
+	} while ((score_win[0] < 2) && (score_win[1] < 2));
+
+
+	gotoxy(1, 14);
+	printf("게임을 종료합니다.\n");
+	return 0;
+}
+
+void gotoxy(int x, int y)
+{
+	COORD Pos = { x - 1, y - 1 };
+	SetConsoleCursorPosition(GetStdHandle(STD_OUTPUT_HANDLE), Pos);
+}
+
+/*게임에 대한 설명,참가자와 제한시간을 입력받는 함수 */
+double intro_game(char team_name[][7])
+{
+	double game_time;
+	int i;
+	printf("줄다리기 게임\n\n");
+	printf("3판 2선승입니다.\n\n");
+	printf("게임에는 두 팀이 참가합니다.\n");
+
+	for (i = 0; i < 2; i++)
+	{
+		printf("%d번 참가팀의 이름을 입력하고 엔터를 누르세요>", i + 1);
+		scanf("%s", &team_name[i]);
+	}
+
+	printf("\n");
+	printf("줄다리기 제한시간을 입력하세요(초단위)>");
+	scanf("%lf", &game_time);
+
+	system("cls");
+
+	gotoxy(1, 1);
+	printf("제한시간:%5.1f초", game_time);
+	gotoxy(30, 1);
+	printf("경과시간 : %4.1초", 0);
+
+	gotoxy(38, 6);
+	printf("기준점");
+	gotoxy(40, 7);
+	printf("▼");
+	gotoxy(40, 9);
+	printf("▲");
+
+	return game_time;
+}
+
+/*게임의 시작 초기화면을 표시한다*/
+void display_start(char t_name[][7], int s_w[], int s_l[])
+{
+	int i, r_start = 20;
+	display_line(20);
+
+	for (i = 0; i < 2; i++)
+	{
+		gotoxy(i * 55 + 10, 6);
+		printf("%s", t_name[i]);
+		gotoxy(i * 55 + 10, 7);
+		printf("%d승, %d패", s_w[i], s_l[i]);
+	}
+
+	gotoxy(1, 13);
+	printf("아무키나 누르면 시작합니다.");
+	getchar();
+	gotoxy(1, 12);
+	printf("                                  ");
+	gotoxy(1, 13);
+	printf("                                  ");
+
+}
+
+/*줄다리기의 줄을 나타내는 함수*/
+void display_line(int rnd)
+{
+	int i, line[21] = { 0 };
+	line[10] = 1;
+	line[4] = 2;
+	line[16] = 2;
+	gotoxy(1, 8);
+	for (i = 0; i < 78; i++)
+		printf(" ");
+
+	gotoxy(rnd, 8);
+
+	for (i = 0; i < 21; i++)
+		if (line[i] == 0)
+			printf("□");
+		else if (line[i] == 1)
+			printf("■");
+		else
+			printf("◆");
+}
+
+void display_win(char t_name[][7], int s_win[], int s_lose[])
+
+{
+
+	for (int i = 0; i < 2; i++)
+
+	{
+
+		gotoxy(i * 55 + 10, 6);
+
+		printf("%s", t_name[i]);
+
+		gotoxy(i * 55 + 10, 7);
+
+		printf("%d승, %d패", s_win[i], s_lose[i]);
+
+	}
+
+}
+
+/*줄다리기 게임을 제어하는 함수*/
+void game_control(int* rough_s, clock_t st, double* ps)
+{
+	int rnd, i;
+	clock_t end;
+
+	rnd = rand() % 100;
+	if (rnd % 2)
+		rnd = rnd % 4; //rnd가 짝수
+	else
+		rnd = -rnd % 4; //rnd가 홀수
+
+	if (rnd < 0)
+	{
+		for (i = *rough_s; i > (*rough_s + rnd); i--)
+		{
+			display_line(i);
+			Sleep(100);
+		}
+	}
+
+	else
+	{
+		for (i = *rough_s; i < (*rough_s + rnd); i++)
+		{
+			display_line(i);
+			Sleep(100);
+		}
+	}
+
+	//시작점을 재설정
+	if (rnd < 0)
+		*rough_s = i + 1;
+	else
+		*rough_s = i - 1;
+
+	end = clock();
+	*ps = (double)(end - st) / (CLOCKS_PER_SEC);
+	gotoxy(30, 1);
+	printf("경과시간:%4.lf초", *ps);
+}
+
+/*우승팀을 구분하고 경기결과를 출력*/
+void make_decision(int r_s, int s_w[], int s_l[], char t_name[][7])
+{
+	int win;
+	if (20 < r_s)
+	{
+		s_w[1] += 1;
+		s_l[0] += 1;
+		win = 2;
+
+	}
+	else if (r_s < 20)
+	{
+		s_w[0] += 1;
+		s_l[1] += 1;
+		win = 1;
+
+	}
+	else
+		win = 0;
+
+	gotoxy(1, 12);
+
+	if (win)
+		printf("%s팀이 이겼습니다.", t_name[win - 1]);
+	else
+		printf("비겼습니다.");
+	gotoxy(1, 13);
+	printf("아무키나 누르세요.");
+	getchar();
+}
